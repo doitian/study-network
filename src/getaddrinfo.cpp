@@ -8,6 +8,8 @@
 #include <sstream>
 #include <string>
 #include <arpa/inet.h>
+#include <strings.h>
+#include <string.h>
 
 using namespace std;
 
@@ -133,33 +135,40 @@ static ostream& operator<<(ostream& os, const addrinfo& info) {
   return os;
 }
 
-const char* const DEFAULT_NODE = "localhost";
-const char* const DEFAULT_SERVICE = nullptr;
-
 int main(int argc, char* argv[]) {
+  addrinfo hints;
   addrinfo *info = nullptr;
-  const char* node = DEFAULT_NODE;
-  const char* service = DEFAULT_SERVICE;
+  const char* node = nullptr;
+  const char* service = nullptr;
 
-  if (argc > 1) {
+  if (argc > 1 && strcmp("localhost", argv[1]) != 0) {
     node = argv[1];
   }
   if (argc > 2) {
     service = argv[2];
   }
 
-  cout << "getaddrinfo " << node;
+  cout << "getaddrinfo ";
+  if (node) {
+    cout << " " << node;
+  } else {
+    cout << " localhost";
+  }
   if (service) {
     cout << " " << service;
   }
   cout << endl;
 
-  int ret = 0;
+  bzero(&hints, sizeof(hints));
+  hints.ai_family = AF_UNSPEC;
+  if (!node) {
+    hints.ai_flags = AI_PASSIVE;
+  }
 
-  ret = getaddrinfo(node, service, nullptr, &info);
-  if (ret == -1) {
-    perror("getaddrinfo");
-    exit(EXIT_FAILURE);
+  int status = getaddrinfo(node, service, &hints, &info);
+  if (status != 0) {
+    cerr << "getaddrinfo error: " << gai_strerror(status) << endl;
+    exit(status);
   }
 
   if (info) {
